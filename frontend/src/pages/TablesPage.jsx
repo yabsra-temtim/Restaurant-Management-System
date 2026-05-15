@@ -1,7 +1,7 @@
 import React, { useState, useEffect } from 'react';
 import { useParams, useNavigate } from 'react-router-dom';
 import { tableService } from '../services/api';
-import { Plus, Users, Trash2, Edit, CheckCircle, Clock } from 'lucide-react';
+import { Plus, Users, Trash2, Edit, CheckCircle, Clock, ArrowLeft } from 'lucide-react';
 
 export const TablesPage = () => {
   const { restaurantId } = useParams();
@@ -83,6 +83,13 @@ export const TablesPage = () => {
   return (
     <div className="min-h-screen p-8 bg-gray-50/50">
       <div className="max-w-7xl mx-auto">
+        <button 
+          onClick={() => navigate(`/restaurant/${restaurantId}`)}
+          className="flex items-center gap-2 text-gray-500 hover:text-gray-900 mb-8 font-medium transition-colors"
+        >
+          <ArrowLeft size={18} />
+          Back to Hub
+        </button>
         
         <div className="flex flex-col md:flex-row justify-between items-start md:items-center mb-8 gap-4">
           <div>
@@ -170,7 +177,7 @@ export const TablesPage = () => {
               
               <div className="flex bg-gray-50/80 border-t border-gray-100 divide-x divide-gray-100">
                 <button
-                  onClick={() => navigate(`/restaurant/${restaurantId}/orders/${table.id}`)}
+                  onClick={() => navigate(`/restaurant/${restaurantId}/pos/${table.id}`)}
                   className="flex-1 py-3 text-sm font-semibold text-primary-600 hover:bg-primary-50 transition-colors flex items-center justify-center gap-2"
                 >
                   Orders

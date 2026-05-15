@@ -2,16 +2,17 @@ import React, { useState, useEffect } from 'react';
 import { useParams } from 'react-router-dom';
 import { tableService, orderService, menuService, paymentService } from '../services/api';
 import { useAuth } from '../context/AuthContext';
-import { CreditCard, Banknote, Receipt, Plus, Minus, Search, ShoppingCart, User } from 'lucide-react';
+import { CreditCard, Banknote, Receipt, Plus, Minus, Search, ShoppingCart, User, ArrowLeft, CheckCircle, Clock } from 'lucide-react';
 
 export const POSPage = () => {
-  const { restaurantId } = useParams();
+  const { restaurantId, tableId } = useParams();
   const { user } = useAuth();
   const [tables, setTables] = useState([]);
   const [menuItems, setMenuItems] = useState([]);
   const [selectedTable, setSelectedTable] = useState(null);
   const [currentOrder, setCurrentOrder] = useState(null);
   const [cart, setCart] = useState([]);
+  const [tip, setTip] = useState(0);
   const [loading, setLoading] = useState(true);
   const [processing, setProcessing] = useState(false);
 
@@ -27,6 +28,11 @@ export const POSPage = () => {
       ]);
       setTables(tablesRes.data);
       setMenuItems(menuRes.data);
+
+      if (tableId) {
+        const table = tablesRes.data.find(t => t.id === tableId);
+        if (table) handleSelectTable(table);
+      }
     } catch (err) {
       console.error('Failed to fetch POS data:', err);
     } finally {
@@ -37,6 +43,7 @@ export const POSPage = () => {
   const handleSelectTable = async (table) => {
     setSelectedTable(table);
     setCart([]);
+    setTip(0);
     if (table.status === 'occupied') {
       try {
         // Find active order for this table
@@ -100,32 +107,57 @@ export const POSPage = () => {
     }
   };
 
+  const handleUpdateStatus = async (newStatus) => {
+    if (!currentOrder) return;
+    setProcessing(true);
+    try {
+      await orderService.updateStatus(currentOrder.id, newStatus);
+      if (newStatus === 'billing') {
+        setSelectedTable(null);
+        setCurrentOrder(null);
+      }
+      fetchInitialData();
+      if (newStatus !== 'billing') handleSelectTable(selectedTable);
+    } catch (err) {
+      console.error('Failed to update status:', err);
+    } finally {
+      setProcessing(false);
+    }
+  };
+
   const handlePrintReceipt = () => {
-    const total = calculateSubtotal() * 1.15;
+    const subtotal = calculateSubtotal();
+    const tax = subtotal * 0.15;
+    const finalTotal = subtotal + tax + parseFloat(tip || 0);
     const receiptContent = `
-      --- RESTAURANT RECEIPT ---
-      Table: #${selectedTable.table_number}
-      Date: ${new Date().toLocaleString()}
-      -------------------------
-      ${currentOrder ? currentOrder.items.map(i => `${i.quantity}x ${i.menu_item_name} - $${(i.unit_price * i.quantity).toFixed(2)}`).join('\n      ') : ''}
-      ${cart.map(i => `${i.quantity}x ${i.name} - $${(i.price * i.quantity).toFixed(2)}`).join('\n      ')}
-      -------------------------
-      Total: $${total.toFixed(2)}
-      Thank you for dining with us!
+--- RESTAURANT RECEIPT ---
+Table: #${selectedTable.table_number}
+Date: ${new Date().toLocaleString()}
+-------------------------
+${currentOrder ? currentOrder.items.map(i => `${i.quantity}x ${i.menu_item_name} - $${(i.unit_price * i.quantity).toFixed(2)}`).join('\n') : ''}
+${cart.map(i => `${i.quantity}x ${i.name} - $${(i.price * i.quantity).toFixed(2)}`).join('\n')}
+-------------------------
+Subtotal: $${subtotal.toFixed(2)}
+Tax (15%): $${tax.toFixed(2)}
+Tip: $${parseFloat(tip || 0).toFixed(2)}
+Total: $${finalTotal.toFixed(2)}
+-------------------------
+Thank you for dining with us!
     `;
     const win = window.open('', 'PRINT', 'height=600,width=400');
-    win.document.write('<pre>' + receiptContent + '</pre>');
+    win.document.write('<pre style="font-family: monospace; font-size: 14px; padding: 20px;">' + receiptContent + '</pre>');
     win.document.close();
     win.focus();
-    win.print();
-    win.close();
+    setTimeout(() => { win.print(); win.close(); }, 500);
   };
 
   const handlePayment = async (method) => {
     if (!currentOrder && cart.length === 0) return;
     setProcessing(true);
     try {
-      const total = calculateSubtotal();
+      const subtotal = calculateSubtotal();
+      const tax = subtotal * 0.15;
+      const finalAmount = subtotal + tax + parseFloat(tip || 0);
       
       // If there are cart items, create order first
       let orderId = currentOrder?.id;
@@ -141,7 +173,7 @@ export const POSPage = () => {
 
       await paymentService.create({
         order_id: orderId,
-        amount: total,
+        amount: finalAmount,
         payment_method: method
       });
 
@@ -149,6 +181,7 @@ export const POSPage = () => {
       setSelectedTable(null);
       setCurrentOrder(null);
       setCart([]);
+      setTip(0);
       fetchInitialData();
     } catch (err) {
       console.error('Payment failed:', err);
@@ -164,6 +197,13 @@ export const POSPage = () => {
       {/* Tables Sidebar */}
       <div className="w-80 bg-white border-r border-gray-200 flex flex-col">
         <div className="p-6 border-b border-gray-200">
+          <button 
+            onClick={() => window.history.back()}
+            className="flex items-center gap-2 text-gray-400 hover:text-gray-900 mb-6 text-sm font-medium transition-colors"
+          >
+            <ArrowLeft size={16} />
+            Back to Hub
+          </button>
           <h2 className="text-xl font-bold text-gray-900 flex items-center gap-2">
             <Receipt className="text-primary-600" />
             Tables
@@ -246,16 +286,31 @@ export const POSPage = () => {
                 <div className="flex-1 overflow-y-auto p-6 space-y-6">
                   {/* Active Order Items */}
                   {currentOrder && (
-                    <div className="space-y-3">
-                      <p className="text-[10px] font-black uppercase tracking-widest text-gray-400">Previously Ordered</p>
-                      {currentOrder.items.map(item => (
-                        <div key={item.id} className="flex justify-between items-center text-sm">
-                          <span className="text-gray-600 font-medium">
-                            <span className="font-bold text-gray-900">{item.quantity}x</span> {item.menu_item_name}
-                          </span>
-                          <span className="font-bold text-gray-900">${(item.unit_price * item.quantity).toFixed(2)}</span>
+                    <div className="space-y-4">
+                      <div className={`p-3 rounded-xl mb-2 flex items-center justify-between ${
+                        currentOrder.status === 'ready' ? 'bg-emerald-500/10 text-emerald-600' : 
+                        currentOrder.status === 'preparing' ? 'bg-amber-500/10 text-amber-600' :
+                        currentOrder.status === 'served' ? 'bg-blue-500/10 text-blue-600' :
+                        'bg-gray-100 text-gray-500'
+                      }`}>
+                        <div className="flex items-center gap-2">
+                          <div className={`w-2 h-2 rounded-full bg-current ${currentOrder.status !== 'served' ? 'animate-pulse' : ''}`}></div>
+                          <span className="text-[10px] font-black uppercase tracking-widest">{currentOrder.status}</span>
                         </div>
-                      ))}
+                        <span className="text-[10px] font-medium opacity-60">#{currentOrder.id.split('-')[0]}</span>
+                      </div>
+
+                      <div className="space-y-3">
+                        <p className="text-[10px] font-black uppercase tracking-widest text-gray-400">Items at Table</p>
+                        {currentOrder.items.map(item => (
+                          <div key={item.id} className="flex justify-between items-center text-sm">
+                            <span className="text-gray-600 font-medium">
+                              <span className="font-bold text-gray-900">{item.quantity}x</span> {item.menu_item_name}
+                            </span>
+                            <span className="font-bold text-gray-900">${(item.unit_price * item.quantity).toFixed(2)}</span>
+                          </div>
+                        ))}
+                      </div>
                     </div>
                   )}
 
@@ -299,9 +354,21 @@ export const POSPage = () => {
                       <span>Tax (15%)</span>
                       <span>${(calculateSubtotal() * 0.15).toFixed(2)}</span>
                     </div>
+                    <div className="flex justify-between items-center py-1">
+                      <span className="text-gray-500 text-sm">Tip</span>
+                      <div className="flex items-center gap-1">
+                        <span className="text-gray-400 text-xs">$</span>
+                        <input 
+                          type="number" 
+                          value={tip}
+                          onChange={(e) => setTip(e.target.value)}
+                          className="w-20 px-2 py-1 bg-gray-50 border border-gray-200 rounded text-right font-bold text-sm"
+                        />
+                      </div>
+                    </div>
                     <div className="flex justify-between text-xl font-black text-gray-900 pt-2 border-t border-gray-100">
                       <span>Total</span>
-                      <span>${(calculateSubtotal() * 1.15).toFixed(2)}</span>
+                      <span>${(calculateSubtotal() * 1.15 + parseFloat(tip || 0)).toFixed(2)}</span>
                     </div>
                   </div>
 
@@ -313,22 +380,47 @@ export const POSPage = () => {
                     >
                       {processing ? 'Processing...' : 'Place Order'}
                     </button>
-                    <button 
-                      onClick={() => handlePayment('Cash')}
-                      disabled={!currentOrder || processing}
-                      className="btn-secondary flex items-center justify-center gap-2 py-3 disabled:opacity-50"
-                    >
-                      <Banknote size={20} />
-                      Cash
-                    </button>
-                    <button 
-                      onClick={() => handlePayment('Card')}
-                      disabled={!currentOrder || processing}
-                      className="btn-secondary flex items-center justify-center gap-2 py-3 disabled:opacity-50"
-                    >
-                      <CreditCard size={20} />
-                      Card
-                    </button>
+
+                    {currentOrder && currentOrder.status === 'ready' && (
+                      <button 
+                        onClick={() => handleUpdateStatus('served')}
+                        disabled={processing}
+                        className="col-span-2 bg-emerald-500 hover:bg-emerald-600 text-white font-bold py-3 rounded-xl flex items-center justify-center gap-2 transition-all shadow-lg shadow-emerald-500/20"
+                      >
+                        <CheckCircle size={20} />
+                        Mark as Served
+                      </button>
+                    )}
+
+                    {currentOrder && currentOrder.status === 'served' && (
+                      <button 
+                        onClick={() => handleUpdateStatus('billing')}
+                        disabled={processing}
+                        className="col-span-2 bg-amber-500 hover:bg-amber-600 text-white font-bold py-3 rounded-xl flex items-center justify-center gap-2 transition-all shadow-lg shadow-amber-500/20"
+                      >
+                        <Receipt size={20} />
+                        Send to Cashier
+                      </button>
+                    )}
+
+                    <div className="col-span-2 grid grid-cols-2 gap-3 pt-2 border-t border-gray-100">
+                      <button 
+                        onClick={() => handlePayment('Cash')}
+                        disabled={!currentOrder || processing || user.role === 'server'}
+                        className="btn-secondary flex items-center justify-center gap-2 py-3 disabled:opacity-50 text-xs"
+                      >
+                        <Banknote size={16} />
+                        Cash
+                      </button>
+                      <button 
+                        onClick={() => handlePayment('Card')}
+                        disabled={!currentOrder || processing || user.role === 'server'}
+                        className="btn-secondary flex items-center justify-center gap-2 py-3 disabled:opacity-50 text-xs"
+                      >
+                        <CreditCard size={16} />
+                        Card
+                      </button>
+                    </div>
                   </div>
                 </div>
               </div>

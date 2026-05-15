@@ -86,7 +86,7 @@ export const LoginPage = () => {
 
         <div className="mt-8 p-4 bg-primary-50/50 border border-primary-100/50 rounded-xl text-sm text-gray-600 text-center">
           <p className="font-semibold text-primary-700 mb-1">Demo Access</p>
-          <p>manager@restaurant.com / <span className="font-mono bg-white px-1 rounded text-xs">any pass</span></p>
+          <p>manager@restaurant.com / <span className="font-mono bg-white px-1 rounded text-xs">password</span></p>
         </div>
       </div>
     </div>

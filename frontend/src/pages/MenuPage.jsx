@@ -96,6 +96,14 @@ export const MenuPage = () => {
   return (
     <div className="min-h-screen p-8 bg-gray-50/50">
       <div className="max-w-7xl mx-auto">
+        <button 
+          onClick={() => navigate(`/restaurant/${restaurantId}`)}
+          className="flex items-center gap-2 text-gray-500 hover:text-gray-900 mb-8 font-medium transition-colors"
+        >
+          <LayoutList size={18} />
+          Back to Hub
+        </button>
+
         <div className="flex flex-col md:flex-row justify-between items-start md:items-center mb-10 gap-4">
           <div>
             <h1 className="text-3xl font-display font-bold text-gray-900 mb-2 flex items-center gap-3">

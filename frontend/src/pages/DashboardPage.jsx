@@ -24,7 +24,7 @@ export const DashboardPage = () => {
   };
 
   const handleSelectRestaurant = (restaurantId) => {
-    navigate(`/restaurant/${restaurantId}`);
+    navigate(`/restaurant/${restaurantId}/login`);
   };
 
   if (loading) {

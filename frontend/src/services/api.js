@@ -26,7 +26,9 @@ api.interceptors.request.use(
 // Users
 export const userService = {
   login: (data) => api.post('/auth/login', data),
+  restaurantLogin: (data) => api.post('/auth/restaurant-login', data),
   getAll: () => api.get('/users'),
+  getByRestaurant: (restaurantId) => api.get(`/users/restaurant/${restaurantId}`),
   getById: (id) => api.get(`/users/${id}`),
   create: (data) => api.post('/users', data),
   update: (id, data) => api.put(`/users/${id}`, data),
@@ -66,6 +68,7 @@ export const menuService = {
 export const orderService = {
   getByRestaurant: (restaurantId) => api.get(`/orders/restaurant/${restaurantId}`),
   getActiveByRestaurant: (restaurantId) => api.get(`/orders/restaurant/${restaurantId}/active`),
+  getBillingByRestaurant: (restaurantId) => api.get(`/orders/restaurant/${restaurantId}/billing`),
   getById: (id) => api.get(`/orders/${id}`),
   create: (data) => api.post('/orders', data),
   updateStatus: (id, status) => api.put(`/orders/${id}`, { status }),

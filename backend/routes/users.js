@@ -7,7 +7,22 @@ const router = express.Router();
 // Get all users
 router.get('/', async (req, res) => {
   try {
-    const result = await pool.query('SELECT id, name, email, role, created_at FROM users');
+    const result = await pool.query('SELECT id, name, email, role, restaurant_id, created_at FROM users');
+    res.json(result.rows);
+  } catch (err) {
+    console.error(err);
+    res.status(500).json({ error: 'Database error' });
+  }
+});
+
+// Get users by restaurant ID
+router.get('/restaurant/:restaurantId', async (req, res) => {
+  const { restaurantId } = req.params;
+  try {
+    const result = await pool.query(
+      'SELECT id, name, email, role, restaurant_id, created_at FROM users WHERE restaurant_id = $1',
+      [restaurantId]
+    );
     res.json(result.rows);
   } catch (err) {
     console.error(err);
@@ -32,12 +47,12 @@ router.get('/:id', async (req, res) => {
 
 // Create new user
 router.post('/', async (req, res) => {
-  const { name, email, password, role } = req.body;
+  const { name, email, password, role, restaurant_id } = req.body;
   try {
     const hashedPassword = await bcrypt.hash(password, 10);
     const result = await pool.query(
-      'INSERT INTO users (name, email, password, role) VALUES ($1, $2, $3, $4) RETURNING id, name, email, role',
-      [name, email, hashedPassword, role || 'staff']
+      'INSERT INTO users (name, email, password, role, restaurant_id) VALUES ($1, $2, $3, $4, $5) RETURNING id, name, email, role, restaurant_id',
+      [name, email, hashedPassword, role || 'staff', restaurant_id]
     );
     res.status(201).json(result.rows[0]);
   } catch (err) {

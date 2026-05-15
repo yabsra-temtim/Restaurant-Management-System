@@ -33,6 +33,14 @@ export const InventoryPage = () => {
   return (
     <div className="min-h-screen bg-gray-50/50 p-8">
       <div className="max-w-7xl mx-auto">
+        <button 
+          onClick={() => window.history.back()}
+          className="flex items-center gap-2 text-gray-400 hover:text-gray-900 mb-8 font-medium transition-colors"
+        >
+          <Package size={18} />
+          Back to Hub
+        </button>
+
         <div className="flex justify-between items-center mb-10">
           <div>
             <h1 className="text-4xl font-display font-black text-gray-900 mb-2 flex items-center gap-3">

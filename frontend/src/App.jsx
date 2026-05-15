@@ -1,5 +1,5 @@
 import React from 'react';
-import { BrowserRouter as Router, Routes, Route, Navigate } from 'react-router-dom';
+import { BrowserRouter as Router, Routes, Route, Navigate, useParams } from 'react-router-dom';
 import { AuthProvider, useAuth } from './context/AuthContext';
 import { Navbar } from './components/Navbar';
 import { LoginPage } from './pages/LoginPage';
@@ -14,16 +14,45 @@ import { InventoryPage } from './pages/InventoryPage';
 import { RestaurantHub } from './pages/RestaurantHub';
 import { MenuPage } from './pages/MenuPage';
 import { OrdersPage } from './pages/OrdersPage';
+import { CashierPage } from './pages/CashierPage';
+import { RestaurantLoginPage } from './pages/RestaurantLoginPage';
 import './index.css';
 
 const PrivateRoute = ({ children }) => {
   const { isAuthenticated, loading } = useAuth();
 
   if (loading) {
-    return <div className="p-8 text-center">Loading...</div>;
+    return (
+      <div className="min-h-screen flex items-center justify-center bg-gray-900">
+        <div className="animate-pulse text-primary-500 font-bold">Verifying Session...</div>
+      </div>
+    );
   }
 
   return isAuthenticated ? children : <Navigate to="/login" />;
+};
+
+const RestaurantRoute = ({ children }) => {
+  const { user, loading, activeRestaurantId } = useAuth();
+  const { restaurantId } = useParams();
+
+  if (loading) return <div className="p-8 text-center">Verifying Access...</div>;
+
+  // Basic access check: user role or assigned restaurant
+  const hasAccess = 
+    user?.role === 'manager' || 
+    user?.restaurant_id === restaurantId;
+
+  if (!hasAccess) {
+    return <Navigate to="/dashboard" />;
+  }
+
+  // Secondary check: Has the user "unlocked" this specific restaurant in the current session?
+  if (activeRestaurantId !== restaurantId) {
+    return <Navigate to={`/restaurant/${restaurantId}/login`} />;
+  }
+
+  return children;
 };
 
 const AppRoutes = () => {
@@ -54,7 +83,17 @@ const AppRoutes = () => {
           path="/restaurant/:restaurantId"
           element={
             <PrivateRoute>
-              <RestaurantHub />
+              <RestaurantRoute>
+                <RestaurantHub />
+              </RestaurantRoute>
+            </PrivateRoute>
+          }
+        />
+        <Route
+          path="/restaurant/:restaurantId/login"
+          element={
+            <PrivateRoute>
+              <RestaurantLoginPage />
             </PrivateRoute>
           }
         />
@@ -62,7 +101,9 @@ const AppRoutes = () => {
           path="/restaurant/:restaurantId/inventory"
           element={
             <PrivateRoute>
-              <InventoryPage />
+              <RestaurantRoute>
+                <InventoryPage />
+              </RestaurantRoute>
             </PrivateRoute>
           }
         />
@@ -70,7 +111,9 @@ const AppRoutes = () => {
           path="/restaurant/:restaurantId/staff"
           element={
             <PrivateRoute>
-              <StaffPage />
+              <RestaurantRoute>
+                <StaffPage />
+              </RestaurantRoute>
             </PrivateRoute>
           }
         />
@@ -78,7 +121,9 @@ const AppRoutes = () => {
           path="/restaurant/:restaurantId/analytics"
           element={
             <PrivateRoute>
-              <AnalyticsPage />
+              <RestaurantRoute>
+                <AnalyticsPage />
+              </RestaurantRoute>
             </PrivateRoute>
           }
         />
@@ -86,7 +131,9 @@ const AppRoutes = () => {
           path="/restaurant/:restaurantId/tables"
           element={
             <PrivateRoute>
-              <TablesPage />
+              <RestaurantRoute>
+                <TablesPage />
+              </RestaurantRoute>
             </PrivateRoute>
           }
         />
@@ -94,7 +141,9 @@ const AppRoutes = () => {
           path="/restaurant/:restaurantId/kitchen"
           element={
             <PrivateRoute>
-              <KitchenPage />
+              <RestaurantRoute>
+                <KitchenPage />
+              </RestaurantRoute>
             </PrivateRoute>
           }
         />
@@ -102,7 +151,19 @@ const AppRoutes = () => {
           path="/restaurant/:restaurantId/pos"
           element={
             <PrivateRoute>
-              <POSPage />
+              <RestaurantRoute>
+                <POSPage />
+              </RestaurantRoute>
+            </PrivateRoute>
+          }
+        />
+        <Route
+          path="/restaurant/:restaurantId/pos/:tableId"
+          element={
+            <PrivateRoute>
+              <RestaurantRoute>
+                <POSPage />
+              </RestaurantRoute>
             </PrivateRoute>
           }
         />
@@ -110,7 +171,9 @@ const AppRoutes = () => {
           path="/restaurant/:restaurantId/menu"
           element={
             <PrivateRoute>
-              <MenuPage />
+              <RestaurantRoute>
+                <MenuPage />
+              </RestaurantRoute>
             </PrivateRoute>
           }
         />
@@ -118,7 +181,19 @@ const AppRoutes = () => {
           path="/restaurant/:restaurantId/orders"
           element={
             <PrivateRoute>
-              <OrdersPage />
+              <RestaurantRoute>
+                <OrdersPage />
+              </RestaurantRoute>
+            </PrivateRoute>
+          }
+        />
+        <Route
+          path="/restaurant/:restaurantId/cashier"
+          element={
+            <PrivateRoute>
+              <RestaurantRoute>
+                <CashierPage />
+              </RestaurantRoute>
             </PrivateRoute>
           }
         />

@@ -157,10 +157,11 @@ router.get('/restaurant/:restaurantId/active', async (req, res) => {
   const { restaurantId } = req.params;
   try {
     const result = await pool.query(
-      `SELECT o.*, t.table_number 
+      `SELECT o.*, t.table_number, u.name as waiter_name 
        FROM orders o 
        JOIN tables t ON o.table_id = t.id 
-       WHERE o.restaurant_id = $1 AND o.status IN ('pending', 'preparing', 'ready') 
+       JOIN users u ON o.created_by = u.id
+       WHERE o.restaurant_id = $1 AND o.status IN ('pending', 'preparing', 'ready', 'served', 'billing') 
        ORDER BY o.created_at ASC`,
       [restaurantId]
     );
@@ -225,6 +226,35 @@ router.put('/items/:orderItemId/status', async (req, res) => {
     res.status(500).json({ error: 'Database error' });
   } finally {
     client.release();
+  }
+});
+
+// Get orders awaiting billing for a restaurant
+router.get('/restaurant/:restaurantId/billing', async (req, res) => {
+  const { restaurantId } = req.params;
+  try {
+    const result = await pool.query(
+      `SELECT o.*, t.table_number, u.name as waiter_name 
+       FROM orders o 
+       JOIN tables t ON o.table_id = t.id 
+       JOIN users u ON o.created_by = u.id
+       WHERE o.restaurant_id = $1 AND o.status = 'billing' 
+       ORDER BY o.updated_at ASC`,
+      [restaurantId]
+    );
+
+    const ordersWithItems = await Promise.all(result.rows.map(async (order) => {
+      const items = await pool.query(
+        'SELECT oi.*, mi.name as menu_item_name FROM order_items oi JOIN menu_items mi ON oi.menu_item_id = mi.id WHERE oi.order_id = $1',
+        [order.id]
+      );
+      return { ...order, items: items.rows };
+    }));
+
+    res.json(ordersWithItems);
+  } catch (err) {
+    console.error(err);
+    res.status(500).json({ error: 'Database error' });
   }
 });
 

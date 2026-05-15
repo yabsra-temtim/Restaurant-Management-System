@@ -70,6 +70,14 @@ export const OrdersPage = () => {
   return (
     <div className="min-h-screen p-8 bg-gray-50/50">
       <div className="max-w-6xl mx-auto">
+        <button 
+          onClick={() => window.history.back()}
+          className="flex items-center gap-2 text-gray-500 hover:text-gray-900 mb-8 font-medium transition-colors"
+        >
+          <Receipt size={18} />
+          Back to Hub
+        </button>
+
         <div className="flex items-center gap-3 mb-10">
           <div className="p-2 bg-primary-100 rounded-xl text-primary-600">
             <Receipt size={28} />

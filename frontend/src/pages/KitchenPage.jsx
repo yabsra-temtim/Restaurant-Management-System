@@ -58,6 +58,14 @@ export const KitchenPage = () => {
   return (
     <div className="min-h-screen bg-gray-900 text-gray-100 p-8">
       <div className="max-w-7xl mx-auto">
+        <button 
+          onClick={() => window.history.back()}
+          className="flex items-center gap-2 text-gray-400 hover:text-white mb-8 font-medium transition-colors"
+        >
+          <ChefHat size={18} />
+          Back to Hub
+        </button>
+
         <div className="flex justify-between items-center mb-10 border-b border-gray-800 pb-6">
           <div className="flex items-center gap-4">
             <div className="p-3 bg-amber-500/20 rounded-2xl text-amber-500">
