@@ -124,17 +124,90 @@ CREATE TABLE IF NOT EXISTS inventory (
 );
 
 -- Create indexes for better performance
-CREATE INDEX idx_restaurants_owner_id ON restaurants(owner_id);
-CREATE INDEX idx_tables_restaurant_id ON tables(restaurant_id);
-CREATE INDEX idx_tables_status ON tables(status);
-CREATE INDEX idx_categories_restaurant_id ON categories(restaurant_id);
-CREATE INDEX idx_menu_items_restaurant_id ON menu_items(restaurant_id);
-CREATE INDEX idx_menu_items_category_id ON menu_items(category_id);
-CREATE INDEX idx_orders_restaurant_id ON orders(restaurant_id);
-CREATE INDEX idx_orders_table_id ON orders(table_id);
-CREATE INDEX idx_orders_status ON orders(status);
-CREATE INDEX idx_order_items_order_id ON order_items(order_id);
-CREATE INDEX idx_reservations_restaurant_id ON reservations(restaurant_id);
-CREATE INDEX idx_reservations_table_id ON reservations(table_id);
-CREATE INDEX idx_payments_order_id ON payments(order_id);
-CREATE INDEX idx_inventory_restaurant_id ON inventory(restaurant_id);
+CREATE INDEX IF NOT EXISTS idx_restaurants_owner_id ON restaurants(owner_id);
+CREATE INDEX IF NOT EXISTS idx_tables_restaurant_id ON tables(restaurant_id);
+CREATE INDEX IF NOT EXISTS idx_tables_status ON tables(status);
+CREATE INDEX IF NOT EXISTS idx_categories_restaurant_id ON categories(restaurant_id);
+CREATE INDEX IF NOT EXISTS idx_menu_items_restaurant_id ON menu_items(restaurant_id);
+CREATE INDEX IF NOT EXISTS idx_menu_items_category_id ON menu_items(category_id);
+CREATE INDEX IF NOT EXISTS idx_orders_restaurant_id ON orders(restaurant_id);
+CREATE INDEX IF NOT EXISTS idx_orders_table_id ON orders(table_id);
+CREATE INDEX IF NOT EXISTS idx_orders_status ON orders(status);
+CREATE INDEX IF NOT EXISTS idx_order_items_order_id ON order_items(order_id);
+CREATE INDEX IF NOT EXISTS idx_reservations_restaurant_id ON reservations(restaurant_id);
+CREATE INDEX IF NOT EXISTS idx_reservations_table_id ON reservations(table_id);
+CREATE INDEX IF NOT EXISTS idx_payments_order_id ON payments(order_id);
+CREATE INDEX IF NOT EXISTS idx_inventory_restaurant_id ON inventory(restaurant_id);
+
+-- --- New Expansion Tables ---
+
+-- Add tax and discount fields to orders
+ALTER TABLE orders ADD COLUMN IF NOT EXISTS tax_amount DECIMAL(10, 2) DEFAULT 0;
+ALTER TABLE orders ADD COLUMN IF NOT EXISTS discount_amount DECIMAL(10, 2) DEFAULT 0;
+ALTER TABLE orders ADD COLUMN IF NOT EXISTS payment_method VARCHAR(50);
+
+-- Suppliers table
+CREATE TABLE IF NOT EXISTS suppliers (
+  id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
+  restaurant_id UUID NOT NULL REFERENCES restaurants(id) ON DELETE CASCADE,
+  name VARCHAR(255) NOT NULL,
+  contact_name VARCHAR(255),
+  phone VARCHAR(20),
+  email VARCHAR(255),
+  address TEXT,
+  created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+  updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
+);
+
+-- Purchase Orders
+CREATE TABLE IF NOT EXISTS purchase_orders (
+  id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
+  restaurant_id UUID NOT NULL REFERENCES restaurants(id) ON DELETE CASCADE,
+  supplier_id UUID NOT NULL REFERENCES suppliers(id),
+  status VARCHAR(50) DEFAULT 'pending',
+  total_amount DECIMAL(10, 2) NOT NULL,
+  expected_delivery TIMESTAMP,
+  created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+  updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
+);
+
+-- Staff Attendance
+CREATE TABLE IF NOT EXISTS staff_attendance (
+  id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
+  user_id UUID NOT NULL REFERENCES users(id) ON DELETE CASCADE,
+  restaurant_id UUID NOT NULL REFERENCES restaurants(id) ON DELETE CASCADE,
+  clock_in TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+  clock_out TIMESTAMP,
+  status VARCHAR(50) DEFAULT 'present',
+  created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
+);
+
+-- Audit Logs
+CREATE TABLE IF NOT EXISTS audit_logs (
+  id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
+  restaurant_id UUID NOT NULL REFERENCES restaurants(id) ON DELETE CASCADE,
+  user_id UUID NOT NULL REFERENCES users(id),
+  action VARCHAR(255) NOT NULL,
+  entity_type VARCHAR(100) NOT NULL,
+  entity_id UUID,
+  details JSONB,
+  ip_address VARCHAR(45),
+  created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
+);
+
+-- Recipe Table (Links menu items to inventory ingredients)
+CREATE TABLE IF NOT EXISTS recipes (
+  id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
+  menu_item_id UUID NOT NULL REFERENCES menu_items(id) ON DELETE CASCADE,
+  inventory_id UUID NOT NULL REFERENCES inventory(id) ON DELETE CASCADE,
+  quantity_required DECIMAL(10, 2) NOT NULL,
+  created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
+);
+
+-- Create new indexes for expansion
+CREATE INDEX IF NOT EXISTS idx_recipes_menu_item_id ON recipes(menu_item_id);
+CREATE INDEX IF NOT EXISTS idx_suppliers_restaurant_id ON suppliers(restaurant_id);
+CREATE INDEX IF NOT EXISTS idx_purchase_orders_restaurant_id ON purchase_orders(restaurant_id);
+CREATE INDEX IF NOT EXISTS idx_staff_attendance_user_id ON staff_attendance(user_id);
+CREATE INDEX IF NOT EXISTS idx_audit_logs_restaurant_id ON audit_logs(restaurant_id);
+

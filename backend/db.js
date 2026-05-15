@@ -11,7 +11,12 @@ const pool = new Pool({
 });
 
 pool.on('error', (err) => {
-  console.error('Unexpected error on idle client', err);
+  console.error('Unexpected error on idle database client:', err.message);
+  if (err.code === 'ENETUNREACH') {
+    console.error('CRITICAL: Database host is unreachable. Please check your network connection or VPN.');
+  } else if (err.code === 'ECONNREFUSED') {
+    console.error('CRITICAL: Database connection refused. Is the database server running?');
+  }
 });
 
 export default pool;

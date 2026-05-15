@@ -48,6 +48,10 @@ router.post('/', async (req, res) => {
   const client = await pool.connect();
 
   try {
+    if (!items || !Array.isArray(items) || items.length === 0) {
+      return res.status(400).json({ error: 'Order must contain at least one item' });
+    }
+
     await client.query('BEGIN');
 
     // Create order
@@ -145,6 +149,82 @@ router.delete('/:id', async (req, res) => {
   } catch (err) {
     console.error(err);
     res.status(500).json({ error: 'Database error' });
+  }
+});
+
+// Get active orders for a restaurant (pending or preparing)
+router.get('/restaurant/:restaurantId/active', async (req, res) => {
+  const { restaurantId } = req.params;
+  try {
+    const result = await pool.query(
+      `SELECT o.*, t.table_number 
+       FROM orders o 
+       JOIN tables t ON o.table_id = t.id 
+       WHERE o.restaurant_id = $1 AND o.status IN ('pending', 'preparing', 'ready') 
+       ORDER BY o.created_at ASC`,
+      [restaurantId]
+    );
+
+    const ordersWithItems = await Promise.all(result.rows.map(async (order) => {
+      const items = await pool.query(
+        'SELECT oi.*, mi.name as menu_item_name FROM order_items oi JOIN menu_items mi ON oi.menu_item_id = mi.id WHERE oi.order_id = $1',
+        [order.id]
+      );
+      return { ...order, items: items.rows };
+    }));
+
+    res.json(ordersWithItems);
+  } catch (err) {
+    console.error(err);
+    res.status(500).json({ error: 'Database error' });
+  }
+});
+
+// Update order item status (kitchen use)
+router.put('/items/:orderItemId/status', async (req, res) => {
+  const { orderItemId } = req.params;
+  const { status } = req.body;
+  const client = await pool.connect();
+
+  try {
+    await client.query('BEGIN');
+
+    const result = await client.query(
+      'UPDATE order_items SET status = $1, updated_at = CURRENT_TIMESTAMP WHERE id = $2 RETURNING *',
+      [status, orderItemId]
+    );
+
+    if (result.rows.length === 0) {
+      await client.query('ROLLBACK');
+      return res.status(404).json({ error: 'Order item not found' });
+    }
+
+    const orderItem = result.rows[0];
+
+    // If item starts preparing, deduct inventory based on recipe
+    if (status === 'preparing') {
+      const recipes = await client.query(
+        'SELECT * FROM recipes WHERE menu_item_id = $1',
+        [orderItem.menu_item_id]
+      );
+
+      for (const ingredient of recipes.rows) {
+        const deduction = ingredient.quantity_required * orderItem.quantity;
+        await client.query(
+          'UPDATE inventory SET current_stock = current_stock - $1 WHERE id = $2',
+          [deduction, ingredient.inventory_id]
+        );
+      }
+    }
+
+    await client.query('COMMIT');
+    res.json(orderItem);
+  } catch (err) {
+    await client.query('ROLLBACK');
+    console.error(err);
+    res.status(500).json({ error: 'Database error' });
+  } finally {
+    client.release();
   }
 });
 

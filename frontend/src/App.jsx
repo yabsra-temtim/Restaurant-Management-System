@@ -4,7 +4,14 @@ import { AuthProvider, useAuth } from './context/AuthContext';
 import { Navbar } from './components/Navbar';
 import { LoginPage } from './pages/LoginPage';
 import { DashboardPage } from './pages/DashboardPage';
+import { NewRestaurantPage } from './pages/NewRestaurantPage';
 import { TablesPage } from './pages/TablesPage';
+import { KitchenPage } from './pages/KitchenPage';
+import { POSPage } from './pages/POSPage';
+import { AnalyticsPage } from './pages/AnalyticsPage';
+import { StaffPage } from './pages/StaffPage';
+import { InventoryPage } from './pages/InventoryPage';
+import { RestaurantHub } from './pages/RestaurantHub';
 import { MenuPage } from './pages/MenuPage';
 import { OrdersPage } from './pages/OrdersPage';
 import './index.css';
@@ -36,10 +43,66 @@ const AppRoutes = () => {
           }
         />
         <Route
+          path="/restaurant/new"
+          element={
+            <PrivateRoute>
+              <NewRestaurantPage />
+            </PrivateRoute>
+          }
+        />
+        <Route
+          path="/restaurant/:restaurantId"
+          element={
+            <PrivateRoute>
+              <RestaurantHub />
+            </PrivateRoute>
+          }
+        />
+        <Route
+          path="/restaurant/:restaurantId/inventory"
+          element={
+            <PrivateRoute>
+              <InventoryPage />
+            </PrivateRoute>
+          }
+        />
+        <Route
+          path="/restaurant/:restaurantId/staff"
+          element={
+            <PrivateRoute>
+              <StaffPage />
+            </PrivateRoute>
+          }
+        />
+        <Route
+          path="/restaurant/:restaurantId/analytics"
+          element={
+            <PrivateRoute>
+              <AnalyticsPage />
+            </PrivateRoute>
+          }
+        />
+        <Route
           path="/restaurant/:restaurantId/tables"
           element={
             <PrivateRoute>
               <TablesPage />
+            </PrivateRoute>
+          }
+        />
+        <Route
+          path="/restaurant/:restaurantId/kitchen"
+          element={
+            <PrivateRoute>
+              <KitchenPage />
+            </PrivateRoute>
+          }
+        />
+        <Route
+          path="/restaurant/:restaurantId/pos"
+          element={
+            <PrivateRoute>
+              <POSPage />
             </PrivateRoute>
           }
         />

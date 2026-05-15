@@ -9,8 +9,23 @@ const api = axios.create({
   },
 });
 
+// Add a request interceptor to include the JWT token
+api.interceptors.request.use(
+  (config) => {
+    const token = localStorage.getItem('token');
+    if (token) {
+      config.headers.Authorization = `Bearer ${token}`;
+    }
+    return config;
+  },
+  (error) => {
+    return Promise.reject(error);
+  }
+);
+
 // Users
 export const userService = {
+  login: (data) => api.post('/auth/login', data),
   getAll: () => api.get('/users'),
   getById: (id) => api.get(`/users/${id}`),
   create: (data) => api.post('/users', data),
@@ -50,9 +65,11 @@ export const menuService = {
 // Orders
 export const orderService = {
   getByRestaurant: (restaurantId) => api.get(`/orders/restaurant/${restaurantId}`),
+  getActiveByRestaurant: (restaurantId) => api.get(`/orders/restaurant/${restaurantId}/active`),
   getById: (id) => api.get(`/orders/${id}`),
   create: (data) => api.post('/orders', data),
   updateStatus: (id, status) => api.put(`/orders/${id}`, { status }),
+  updateItemStatus: (orderItemId, status) => api.put(`/orders/items/${orderItemId}/status`, { status }),
   delete: (id) => api.delete(`/orders/${id}`),
 };
 
@@ -63,6 +80,26 @@ export const reservationService = {
   create: (data) => api.post('/reservations', data),
   update: (id, data) => api.put(`/reservations/${id}`, data),
   delete: (id) => api.delete(`/reservations/${id}`),
+};
+
+// Payments
+export const paymentService = {
+  create: (data) => api.post('/payments', data),
+  getByRestaurant: (restaurantId) => api.get(`/payments/restaurant/${restaurantId}`),
+};
+
+// Inventory
+export const inventoryService = {
+  getByRestaurant: (restaurantId) => api.get(`/inventory/restaurant/${restaurantId}`),
+  update: (id, data) => api.put(`/inventory/${id}`, data),
+  create: (data) => api.post('/inventory', data),
+};
+
+// Analytics
+export const analyticsService = {
+  getSalesSummary: (restaurantId) => api.get(`/analytics/sales-summary/${restaurantId}`),
+  getBestSellers: (restaurantId) => api.get(`/analytics/best-sellers/${restaurantId}`),
+  getDailySales: (restaurantId) => api.get(`/analytics/daily-sales/${restaurantId}`),
 };
 
 export default api;

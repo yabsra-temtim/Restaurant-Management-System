@@ -8,11 +8,16 @@ import tablesRouter from './routes/tables.js';
 import reservationsRouter from './routes/reservations.js';
 import usersRouter from './routes/users.js';
 import restaurantsRouter from './routes/restaurants.js';
+import authRouter from './routes/auth.js';
+import paymentsRouter from './routes/payments.js';
+import inventoryRouter from './routes/inventory.js';
+import staffRouter from './routes/staff.js';
+import analyticsRouter from './routes/analytics.js';
 
 dotenv.config();
 
 const app = express();
-const PORT = process.env.PORT || 5000;
+const PORT = 5001;
 
 // Middleware
 app.use(cors());
@@ -30,12 +35,17 @@ app.get('/api/health', async (req, res) => {
 });
 
 // Routes
+app.use('/api/auth', authRouter);
 app.use('/api/users', usersRouter);
 app.use('/api/restaurants', restaurantsRouter);
 app.use('/api/tables', tablesRouter);
 app.use('/api/menus', menusRouter);
 app.use('/api/orders', ordersRouter);
 app.use('/api/reservations', reservationsRouter);
+app.use('/api/payments', paymentsRouter);
+app.use('/api/inventory', inventoryRouter);
+app.use('/api/staff', staffRouter);
+app.use('/api/analytics', analyticsRouter);
 
 // Error handling middleware
 app.use((err, req, res, next) => {

@@ -37,6 +37,16 @@ router.get('/:id', async (req, res) => {
 router.post('/', async (req, res) => {
   const { restaurant_id, table_number, capacity } = req.body;
   try {
+    // Check if table number already exists for this restaurant
+    const existing = await pool.query(
+      'SELECT id FROM tables WHERE restaurant_id = $1 AND table_number = $2',
+      [restaurant_id, table_number]
+    );
+
+    if (existing.rows.length > 0) {
+      return res.status(400).json({ error: `Table number ${table_number} already exists for this restaurant` });
+    }
+
     const result = await pool.query(
       'INSERT INTO tables (restaurant_id, table_number, capacity, status) VALUES ($1, $2, $3, $4) RETURNING *',
       [restaurant_id, table_number, capacity, 'available']

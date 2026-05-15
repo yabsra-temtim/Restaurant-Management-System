@@ -17,57 +17,59 @@ export const LoginPage = () => {
     setError('');
 
     try {
-      // For demo purposes, fetch user by email
-      const { data: users } = await userService.getAll();
-      const user = users.find((u) => u.email === email);
-
-      if (user) {
-        login(user);
-        navigate('/dashboard');
-      } else {
-        setError('Invalid email or password');
-      }
+      const { data } = await userService.login({ email, password });
+      login(data.user, data.token);
+      navigate('/dashboard');
     } catch (err) {
-      setError('Login failed. Please try again.');
+      const message = err?.response?.data?.error || 'Login failed. Please try again.';
+      setError(message);
     } finally {
       setLoading(false);
     }
   };
 
   return (
-    <div className="min-h-screen bg-gradient-to-br from-primary-500 to-primary-700 flex items-center justify-center p-4">
-      <div className="bg-white rounded-lg shadow-xl p-8 w-full max-w-md">
-        <div className="text-center mb-8">
-          <h1 className="text-4xl font-bold text-primary-600 mb-2">🍽️ RestroHub</h1>
-          <p className="text-gray-600">Restaurant Management System</p>
+    <div 
+      className="min-h-screen bg-cover bg-center flex items-center justify-center p-4 relative"
+      style={{ backgroundImage: 'url("/login-bg.png")' }}
+    >
+      <div className="absolute inset-0 bg-black/40 backdrop-blur-sm z-0"></div>
+      
+      <div className="card w-full max-w-md relative z-10 border-0 shadow-2xl animate-fade-in !p-10">
+        <div className="text-center mb-10">
+          <div className="w-16 h-16 bg-gradient-to-tr from-primary-500 to-accent-500 rounded-2xl flex items-center justify-center mx-auto mb-4 shadow-lg shadow-primary-500/30">
+            <span className="text-3xl text-white">🍽️</span>
+          </div>
+          <h1 className="text-3xl font-display font-bold text-gray-900 mb-2">Savor</h1>
+          <p className="text-gray-500 font-medium">Restaurant Management System</p>
         </div>
 
-        <form onSubmit={handleLogin}>
+        <form onSubmit={handleLogin} className="space-y-5">
           {error && (
-            <div className="mb-4 p-3 bg-red-50 border border-red-200 rounded-lg text-red-600 text-sm">
-              {error}
+            <div className="p-4 bg-red-50/80 backdrop-blur-sm border border-red-100 rounded-xl text-red-600 text-sm flex items-center gap-2 animate-slide-up">
+              <span className="font-semibold">Error:</span> {error}
             </div>
           )}
 
-          <div className="mb-4">
-            <label className="label">Email Address</label>
+          <div>
+            <label className="label text-gray-600">Email Address</label>
             <input
               type="email"
               value={email}
               onChange={(e) => setEmail(e.target.value)}
-              className="input-field"
-              placeholder="you@example.com"
+              className="input-field bg-gray-50/50 focus:bg-white"
+              placeholder="manager@restaurant.com"
               required
             />
           </div>
 
-          <div className="mb-6">
-            <label className="label">Password</label>
+          <div>
+            <label className="label text-gray-600">Password</label>
             <input
               type="password"
               value={password}
               onChange={(e) => setPassword(e.target.value)}
-              className="input-field"
+              className="input-field bg-gray-50/50 focus:bg-white"
               placeholder="••••••••"
               required
             />
@@ -76,16 +78,15 @@ export const LoginPage = () => {
           <button
             type="submit"
             disabled={loading}
-            className="btn-primary w-full"
+            className="btn-primary w-full py-3 mt-4 text-lg"
           >
-            {loading ? 'Logging in...' : 'Login'}
+            {loading ? 'Authenticating...' : 'Sign In'}
           </button>
         </form>
 
-        <div className="mt-6 p-4 bg-blue-50 rounded-lg text-sm text-gray-600">
-          <p className="font-semibold mb-2">Demo Credentials:</p>
-          <p>Email: manager@restaurant.com</p>
-          <p>Password: any value</p>
+        <div className="mt-8 p-4 bg-primary-50/50 border border-primary-100/50 rounded-xl text-sm text-gray-600 text-center">
+          <p className="font-semibold text-primary-700 mb-1">Demo Access</p>
+          <p>manager@restaurant.com / <span className="font-mono bg-white px-1 rounded text-xs">any pass</span></p>
         </div>
       </div>
     </div>
